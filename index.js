@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-require("dotenv").config()
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 8000;
 // middelwear
@@ -15,34 +15,51 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-    // 
-    const db=client.db("Jobs_DB")
-    const jobCollection=db.collection("jobs")
-    app.get("/jobs",async(req,res)=>{
-        const result=await jobCollection.find().toArray()
-        res.send(result)
-    })
-    app.get("/jobs/:id",async(req,res)=>{
-        const id=req.params.id;
-        const query={_id:new ObjectId(id)}
-        console.log("query id",query)
-        const result=await jobCollection.findOne(query)
-        res.send(result)
-    })
-    app.post("/jobs",async(req,res)=>{
-        const courser=req.body
-        const result=await jobCollection.insertOne(courser)
-        res.send(result)
-    })
+    //
+    const db = client.db("Jobs_DB");
+    const jobCollection = db.collection("jobs");
+    app.get("/jobs", async (req, res) => {
+      const result = await jobCollection.find().toArray();
+      res.send(result);
+    });
+    app.get("/jobs/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+
+      const result = await jobCollection.findOne(query);
+      res.send(result);
+    });
+    app.post("/jobs", async (req, res) => {
+      const courser = req.body;
+      const result = await jobCollection.insertOne(courser);
+      res.send(result);
+    });
+    app.patch("/jobs/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updateJob = req.body;
+      console.log("update job", updateJob);
+      console.log("query id", query);
+      const update = {
+        $set: {
+          title: updateJob.title,
+          body: updateJob.body,
+        },
+      };
+      const result = await jobCollection.updateOne(query, update);
+      res.send(result);
+    });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
