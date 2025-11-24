@@ -55,6 +55,13 @@ async function run() {
       const result = await jobCollection.updateOne(query, update);
       res.send(result);
     });
+    app.delete("/jobs/:id",async(req,res)=>{
+        const id=req.params.id;
+        const query={_id:new ObjectId(id)}
+        const result=await jobCollection.deleteOne(query)
+        console.log("delete job",result)
+        res.send(result)
+    })
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
