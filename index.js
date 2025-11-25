@@ -24,6 +24,9 @@ async function run() {
     //
     const db = client.db("Jobs_DB");
     const jobCollection = db.collection("jobs");
+    const acceptJobCollection = db.collection("acceptJob");
+    //
+
     app.get("/jobs", async (req, res) => {
       const result = await jobCollection.find().toArray();
       res.send(result);
@@ -55,13 +58,39 @@ async function run() {
       const result = await jobCollection.updateOne(query, update);
       res.send(result);
     });
-    app.delete("/jobs/:id",async(req,res)=>{
-        const id=req.params.id;
-        const query={_id:new ObjectId(id)}
-        const result=await jobCollection.deleteOne(query)
-        console.log("delete job",result)
-        res.send(result)
-    })
+    app.delete("/jobs/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await jobCollection.deleteOne(query);
+      console.log("delete job", result);
+      res.send(result);
+    });
+    // accept job api post
+    app.post("/accept-jobs", async (req, res) => {
+      const courser = req.body;
+      const usereEmail = courser.userEmail;
+      const postJobUserEmail = courser.postUserEmail;
+      const jobId = courser.jobId;
+      if (usereEmail === postJobUserEmail) {
+        return res
+          .status(400)
+          .send({ message: "You cannot accept own posted job!" });
+      }
+      //  Prevent duplicate accept
+      const alreadyAccepted = await acceptJobCollection.findOne({
+        userEmail: usereEmail,
+        jobId: new ObjectId(jobId), 
+      });
+      if (alreadyAccepted) {
+        return res
+          .status(400)
+          .send({ message: "You already accepted this job!" });
+      }
+      // Insert new accept job record
+      courser.jobId = new ObjectId(jobId); // convert before saving
+      const result = await acceptJobCollection.insertOne(courser);
+      res.send(result);
+    });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
