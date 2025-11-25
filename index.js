@@ -1,12 +1,20 @@
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+// firebase admin
+const admin = require("firebase-admin");
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 8000;
 // middelwear
 app.use(cors());
 app.use(express.json());
+// firebase service key
+const serviceAccount = require("./services-key.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 // momgodb connect
 const uri = `mongodb+srv://${process.env.DB_USER_NAME}:${process.env.DB_Password}@cluster0.y29zf.mongodb.net/?appName=Cluster0`;
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -17,6 +25,24 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+// verifyToken
+const verifyToken = async (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res
+      .status(401)
+      .send({ message: "unauthorization access. token is not found " });
+  }
+  const token = authorization.split(" ")[1];
+  // console.log(token)
+  try {
+    const decode = await admin.auth().verifyIdToken(token);
+    console.log("access token",decode)
+    next();
+  } catch (error) {
+    res.status(401).send({ message: "unauthorizaton access" });
+  }
+};
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -31,7 +57,7 @@ async function run() {
       const result = await jobCollection.find().toArray();
       res.send(result);
     });
-    app.get("/jobs/:id", async (req, res) => {
+    app.get("/jobs/:id",verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
 
