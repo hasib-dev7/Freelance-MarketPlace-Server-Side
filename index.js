@@ -54,10 +54,14 @@ async function run() {
     const acceptJobCollection = db.collection("acceptJob");
     //
     // latest job data
-    app.get("/latest-jobs",async(req,res)=>{
-      const result=await jobCollection.find().sort({date:-1}).limit(6).toArray()
-      res.send(result)
-    })
+    app.get("/latest-jobs", async (req, res) => {
+      const result = await jobCollection
+        .find()
+        .sort({ date: -1 })
+        .limit(6)
+        .toArray();
+      res.send(result);
+    });
     //
     app.get("/jobs", async (req, res) => {
       const result = await jobCollection.find().toArray();
@@ -70,6 +74,21 @@ async function run() {
       const result = await jobCollection.findOne(query);
       res.send(result);
     });
+    // filter job data
+    app.get("/jobs", async (req, res) => {
+      const sort = req.query.sort; 
+      console.log("sort",sort)
+      let sortOption = {};
+      if (sort === "asc") {
+        sortOption = { date: 1 };
+      } else if (sort === "desc") {
+        sortOption = { date: -1 };
+      }
+      const result = await jobCollection.find().sort(sortOption).toArray();
+      res.send(result);
+    });
+
+    //
     app.post("/jobs", async (req, res) => {
       const courser = req.body;
       const result = await jobCollection.insertOne(courser);
