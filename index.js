@@ -37,7 +37,7 @@ const verifyToken = async (req, res, next) => {
   // console.log(token)
   try {
     const decode = await admin.auth().verifyIdToken(token);
-    console.log("access token",decode)
+    console.log("access token", decode);
     next();
   } catch (error) {
     res.status(401).send({ message: "unauthorizaton access" });
@@ -47,17 +47,23 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+
     //
     const db = client.db("Jobs_DB");
     const jobCollection = db.collection("jobs");
     const acceptJobCollection = db.collection("acceptJob");
     //
-
+    // latest job data
+    app.get("/latest-jobs",async(req,res)=>{
+      const result=await jobCollection.find().sort({date:-1}).limit(6).toArray()
+      res.send(result)
+    })
+    //
     app.get("/jobs", async (req, res) => {
       const result = await jobCollection.find().toArray();
       res.send(result);
     });
-    app.get("/jobs/:id",verifyToken, async (req, res) => {
+    app.get("/jobs/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
 
