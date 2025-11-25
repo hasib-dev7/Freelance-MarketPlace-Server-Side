@@ -46,16 +46,18 @@ async function run() {
     app.patch("/jobs/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
-      const updateJob = req.body;
-      console.log("update job", updateJob);
-      console.log("query id", query);
-      const update = {
-        $set: {
-          title: updateJob.title,
-          body: updateJob.body,
-        },
+      const body = req.body;
+      const filteredUpdate = {};
+
+      if (body.title) filteredUpdate.title = body.title;
+      if (body.category) filteredUpdate.category = body.category;
+      if (body.description) filteredUpdate.description = body.description;
+      if (body.image) filteredUpdate.image = body.image;
+
+      const updateDoc = {
+        $set: filteredUpdate,
       };
-      const result = await jobCollection.updateOne(query, update);
+      const result = await jobCollection.updateOne(query, updateDoc);
       res.send(result);
     });
     app.delete("/jobs/:id", async (req, res) => {
@@ -65,10 +67,20 @@ async function run() {
       console.log("delete job", result);
       res.send(result);
     });
-    // my post job  api get
+    // my post job  api get email
     app.get("/my-jobs", async (req, res) => {
       const email = req.query.email;
       const result = await jobCollection
+        .find({
+          userEmail: email,
+        })
+        .toArray();
+      res.send(result);
+    });
+    // accept job api get
+    app.get("/accept-jobs", async (req, res) => {
+      const email = req.query.email;
+      const result = await acceptJobCollection
         .find({
           userEmail: email,
         })
@@ -99,6 +111,13 @@ async function run() {
       // Insert new accept job record
       courser.jobId = new ObjectId(jobId); // convert before saving
       const result = await acceptJobCollection.insertOne(courser);
+      res.send(result);
+    });
+    // accepted job collection delet api
+    app.delete("/accept-jobs/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await acceptJobCollection.deleteOne(query);
       res.send(result);
     });
     // Send a ping to confirm a successful connection
