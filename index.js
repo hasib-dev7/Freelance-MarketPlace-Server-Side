@@ -65,6 +65,16 @@ async function run() {
       console.log("delete job", result);
       res.send(result);
     });
+    // my post job  api get
+    app.get("/my-jobs", async (req, res) => {
+      const email = req.query.email;
+      const result = await jobCollection
+        .find({
+          userEmail: email,
+        })
+        .toArray();
+      res.send(result);
+    });
     // accept job api post
     app.post("/accept-jobs", async (req, res) => {
       const courser = req.body;
@@ -79,7 +89,7 @@ async function run() {
       //  Prevent duplicate accept
       const alreadyAccepted = await acceptJobCollection.findOne({
         userEmail: usereEmail,
-        jobId: new ObjectId(jobId), 
+        jobId: new ObjectId(jobId),
       });
       if (alreadyAccepted) {
         return res
