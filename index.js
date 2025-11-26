@@ -10,7 +10,12 @@ const port = process.env.PORT || 8000;
 app.use(cors());
 app.use(express.json());
 // firebase service key
-const serviceAccount = require("./services-key.json");
+// index.js
+const decoded = Buffer.from(
+  process.env.Firebase_Service_Key,
+  "base64"
+).toString("utf8");
+const serviceAccount = JSON.parse(decoded);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -46,7 +51,7 @@ const verifyToken = async (req, res, next) => {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     //
     const db = client.db("Jobs_DB");
@@ -62,29 +67,28 @@ async function run() {
         .toArray();
       res.send(result);
     });
-    //
+    //  get all jobs data
     app.get("/jobs", async (req, res) => {
-      const result = await jobCollection.find().toArray();
-      res.send(result);
+      const sortType = req.query.sort;
+      let sortOption = {};
+      if (sortType === "date_desc") {
+        sortOption = { date: -1 }; //newest first
+      } else if (sortType === "date_asc") {
+        sortOption = { date: 1 }; //oldest first
+      }
+      //  if no sort type -default newest
+      if (!sortType) {
+        sortOption = { date: -1 };
+      }
+      const result=await jobCollection.find().sort(sortOption).toArray();
+      res.send(result)
     });
+    //  signle job data get 
     app.get("/jobs/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
 
       const result = await jobCollection.findOne(query);
-      res.send(result);
-    });
-    // filter job data
-    app.get("/jobs", async (req, res) => {
-      const sort = req.query.sort; 
-      console.log("sort",sort)
-      let sortOption = {};
-      if (sort === "asc") {
-        sortOption = { date: 1 };
-      } else if (sort === "desc") {
-        sortOption = { date: -1 };
-      }
-      const result = await jobCollection.find().sort(sortOption).toArray();
       res.send(result);
     });
 
@@ -94,7 +98,7 @@ async function run() {
       const result = await jobCollection.insertOne(courser);
       res.send(result);
     });
-    app.patch("/jobs/:id", async (req, res) => {
+    app.patch("/jobs/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const body = req.body;
@@ -119,7 +123,7 @@ async function run() {
       res.send(result);
     });
     // my post job  api get email
-    app.get("/my-jobs", async (req, res) => {
+    app.get("/my-jobs", verifyToken, async (req, res) => {
       const email = req.query.email;
       const result = await jobCollection
         .find({
@@ -172,10 +176,10 @@ async function run() {
       res.send(result);
     });
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // await client.db("admin").command({ ping: 1 });
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
